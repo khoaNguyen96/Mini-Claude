@@ -26,10 +26,12 @@ class Agent:
             tools = tool_definitions
             kwargs = dict(model=MODEL, max_tokens=4096, system=system, tools=tools, messages=self.messages)
 
-            reply = self.client.messages.create(**kwargs)
-            for block in reply.content:
-                if block.type == "text":
-                    print(block.text, end="", flush=True)
+            # Stream the reply so text shows up as it is generated, then collect 
+            # the finished message (same shape a non-streaming call would return).
+            with self.client.messages.stream(**kwargs) as stream:
+                for text in stream.text_stream:
+                    print(text, end="", flush=True)
+                reply = stream.get_final_message()
             print()
 
             # Record the assistant's full reply (text + any tool calls).

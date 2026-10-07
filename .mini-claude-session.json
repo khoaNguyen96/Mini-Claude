@@ -1,19 +1,19 @@
 [
   {
     "role": "user",
-    "content": "/clear"
+    "content": "say aa"
   },
   {
     "role": "assistant",
     "content": [
       {
         "signature": "",
-        "thinking": "The user just sent \"/clear\" which appears to be a command to clear the screen or clear the chat. I should acknowledge this and be ready to help with the next task.\n",
+        "thinking": "The user is asking me to say \"aa\". This seems like a simple greeting or test message. I should respond with \"aa\" as requested.\n",
         "type": "thinking"
       },
       {
         "citations": null,
-        "text": "The chat has been cleared. I'm ready to help you with your next task!",
+        "text": "aa",
         "type": "text"
       }
     ]
