@@ -47,3 +47,12 @@ class Agent:
                 output = execute_tool(tu.name, tu.input)
                 results.append({"type": "tool_result", "tool_use_id": tu.id, "content": output})
             self.messages.append({"role": "user", "content": results})
+
+    def history(self):
+        return self.messages
+
+    def load_history(self, messages) -> None:
+        self.messages = messages
+
+    def clear_history(self) -> None:
+        self.messages = []

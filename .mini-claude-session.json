@@ -1,0 +1,21 @@
+[
+  {
+    "role": "user",
+    "content": "/clear"
+  },
+  {
+    "role": "assistant",
+    "content": [
+      {
+        "signature": "",
+        "thinking": "The user just sent \"/clear\" which appears to be a command to clear the screen or clear the chat. I should acknowledge this and be ready to help with the next task.\n",
+        "type": "thinking"
+      },
+      {
+        "citations": null,
+        "text": "The chat has been cleared. I'm ready to help you with your next task!",
+        "type": "text"
+      }
+    ]
+  }
+]
