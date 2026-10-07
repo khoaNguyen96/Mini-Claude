@@ -5,6 +5,8 @@ import anthropic
 
 from tools import tool_definitions, execute_tool
 from prompt import build_system_prompt
+from permissions import check_permission
+
 
 load_dotenv()
 
@@ -46,7 +48,11 @@ class Agent:
             results = []
             for tu in tool_uses:
                 print(f"  → {tu.name}({json.dumps(tu.input)})")
-                output = execute_tool(tu.name, tu.input)
+                # Check permission before running the tool; a denied call never runs.
+                if check_permission(tu.name, tu.input) == "deny":
+                    output = f"Denied: {tu.name} was blocked by the permission system."
+                else: 
+                    output = execute_tool(tu.name, tu.input)
                 results.append({"type": "tool_result", "tool_use_id": tu.id, "content": output})
             self.messages.append({"role": "user", "content": results})
 

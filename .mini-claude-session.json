@@ -1,19 +1,49 @@
 [
   {
     "role": "user",
-    "content": "say aa"
+    "content": "Delete the demo folder with rm -rf."
   },
   {
     "role": "assistant",
     "content": [
       {
         "signature": "",
-        "thinking": "The user is asking me to say \"aa\". This seems like a simple greeting or test message. I should respond with \"aa\" as requested.\n",
+        "thinking": "The user wants me to delete a folder named \"demo\" using the rm -rf command. I should use the run_shell function to execute this command.\n",
+        "type": "thinking"
+      },
+      {
+        "id": "8VzLflOhh2ewGSvh4k7ZLuuOk1JOFInR",
+        "caller": null,
+        "input": {
+          "command": "rm -rf demo"
+        },
+        "name": "run_shell",
+        "type": "tool_use",
+        "toolset_name": null
+      }
+    ]
+  },
+  {
+    "role": "user",
+    "content": [
+      {
+        "type": "tool_result",
+        "tool_use_id": "8VzLflOhh2ewGSvh4k7ZLuuOk1JOFInR",
+        "content": "Denied: run_shell was blocked by the permission system."
+      }
+    ]
+  },
+  {
+    "role": "assistant",
+    "content": [
+      {
+        "signature": "",
+        "thinking": "The run_shell command was blocked. I should try an alternative approach. I could use list_files to see if the demo folder exists, then use edit_file or some other method, but the user specifically asked to use rm -rf. Let me inform them that shell commands are blocked and ask for an alternative approach.\n",
         "type": "thinking"
       },
       {
         "citations": null,
-        "text": "aa",
+        "text": "I'm sorry, but shell commands like `rm -rf` are blocked in this environment. I don't have direct file system access.\n\nIf you need to delete the demo folder, please use the terminal or command line interface directly, or let me know if there's a different approach I can help with using the available tools (like listing files or reading content from files).",
         "type": "text"
       }
     ]
