@@ -20,6 +20,7 @@ class Agent:
         self.client = anthropic.Anthropic()
         # "messages becomes this.messages on the instance"
         self.messages: list = []
+        self.mode = "default" # "plan" makes the agent read-only
 
     def chat(self, user_text: str) -> None:
         self.messages.append({"role": "user", "content": user_text})
@@ -53,13 +54,16 @@ class Agent:
             results = []
             for tu in tool_uses:
                 print(f"  → {tu.name}({json.dumps(tu.input)})")
-                # Check permission before running the tool; a denied call never runs.
-                if check_permission(tu.name, tu.input) == "deny":
-                    output = f"Denied: {tu.name} was blocked by the permission system."
-                else: 
-                    output = execute_tool(tu.name, tu.input)
+                # Plan mode is read-only: writes and shell are denied on top of the gate.
+                blocked = check_permission(tu.name, tu.input) == "deny" or (
+                    self.mode == "plan" and tu.name in ("write_file", "edit_file", "run_shell"))
+                output = f"Denied: {tu.name} was blocked ({self.mode} mode)." if blocked \
+                    else execute_tool(tu.name, tu.input)
                 results.append({"type": "tool_result", "tool_use_id": tu.id, "content": output})
             self.messages.append({"role": "user", "content": results})
+
+    def set_model(self, m: str) -> None:
+        self.mode = m
 
     def history(self):
         return self.messages
