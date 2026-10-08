@@ -3,6 +3,7 @@ import sys
 
 from agent import Agent
 from session import save_session, load_session
+from skills import resolve_skill
 
 def main(argv=None) -> None: 
     # PLACEHOLDER: the chapter shows only the changed lines of this function.
@@ -24,7 +25,8 @@ def main(argv=None) -> None:
 
     one_shot = " ".join(argv).strip()
     if one_shot:
-        text = one_shot
+        # "/name ..." runs a skill's prompt templatel anything else is a message
+        text = resolve_skill(one_shot) or one_shot
         agent.chat(text)
         save_session(agent.history())
         return
@@ -43,7 +45,7 @@ def main(argv=None) -> None:
             print("(history cleared)")
             continue
         if line:
-            agent.chat(line)
+            agent.chat(resolve_skill(line) or line)
         if line:
             save_session(agent.history())
 
