@@ -7,7 +7,7 @@ from tools import tool_definitions, execute_tool
 from prompt import build_system_prompt
 from permissions import check_permission
 from context import maybe_compact
-
+from memory import recall_memories
 
 load_dotenv()
 
@@ -28,6 +28,8 @@ class Agent:
             # Before each model call, compact the history if it has grown too long.
             self.messages = maybe_compact(self.messages, self.client, MODEL)
             system = build_system_prompt()
+            # Recall memories relevant to what the user just asked, into the prompt.
+            system += recall_memories(user_text)
             tools = tool_definitions
             kwargs = dict(model=MODEL, max_tokens=4096, system=system, tools=tools, messages=self.messages)
 

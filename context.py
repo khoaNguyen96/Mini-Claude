@@ -1,6 +1,6 @@
 # Use 2 constants but never gives their values
-COMPACT_THRESHOLD = 4
-KEEP_RECENT = 2
+COMPACT_THRESHOLD = 20
+KEEP_RECENT = 4
 
 
 def maybe_compact(messages, client, model):
