@@ -6,6 +6,7 @@ import anthropic
 from tools import tool_definitions, execute_tool
 from prompt import build_system_prompt
 from permissions import check_permission
+from context import maybe_compact
 
 
 load_dotenv()
@@ -24,6 +25,8 @@ class Agent:
         self.messages.append({"role": "user", "content": user_text})
 
         while True:
+            # Before each model call, compact the history if it has grown too long.
+            self.messages = maybe_compact(self.messages, self.client, MODEL)
             system = build_system_prompt()
             tools = tool_definitions
             kwargs = dict(model=MODEL, max_tokens=4096, system=system, tools=tools, messages=self.messages)
