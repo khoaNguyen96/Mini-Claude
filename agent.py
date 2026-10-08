@@ -8,6 +8,7 @@ from prompt import build_system_prompt
 from permissions import check_permission
 from context import maybe_compact
 from memory import recall_memories
+from subagent import run_sub_agent 
 
 load_dotenv()
 
@@ -54,6 +55,11 @@ class Agent:
             results = []
             for tu in tool_uses:
                 print(f"  → {tu.name}({json.dumps(tu.input)})")
+                # The 'agent' tool forks a read-only sub-agent with its own context.
+                if tu.name == "agent":
+                    summary = run_sub_agent(tu.input.get("task", ""), self.client, MODEL)
+                    results.append({"type": "tool_result", "tool_use_id": tu.id, "content": summary})
+                    continue
                 # Plan mode is read-only: writes and shell are denied on top of the gate.
                 blocked = check_permission(tu.name, tu.input) == "deny" or (
                     self.mode == "plan" and tu.name in ("write_file", "edit_file", "run_shell"))
