@@ -2,6 +2,7 @@ import os
 import json
 from dotenv import load_dotenv
 import anthropic
+from pathlib import Path
 
 from tools import tool_definitions, execute_tool
 from prompt import build_system_prompt
@@ -9,6 +10,7 @@ from permissions import check_permission
 from context import maybe_compact
 from memory import recall_memories
 from subagent import run_sub_agent 
+from mcp_client import connect_mcp
 
 load_dotenv()
 
@@ -22,9 +24,11 @@ class Agent:
         # "messages becomes this.messages on the instance"
         self.messages: list = []
         self.mode = "default" # "plan" makes the agent read-only
+        self.mcp = None
 
     def chat(self, user_text: str) -> None:
         self.messages.append({"role": "user", "content": user_text})
+        self._ensure_mcp() # discover external MCP tools before the loop
 
         while True:
             # Before each model call, compact the history if it has grown too long.
@@ -32,7 +36,13 @@ class Agent:
             system = build_system_prompt()
             # Recall memories relevant to what the user just asked, into the prompt.
             system += recall_memories(user_text)
-            tools = tool_definitions
+            # Merge in any external MCP tools, prefixed so we can route their calls back. 
+            mcp_tools = [{
+                "name": f"mcp__demo__{t['name']}",
+                "description": t["description"],
+                "input_schema": t["input_schema"]
+                } for t in (self.mcp.tools if self.mcp else [])]
+            tools = tool_definitions + mcp_tools
             kwargs = dict(model=MODEL, max_tokens=4096, system=system, tools=tools, messages=self.messages)
 
             # Stream the reply so text shows up as it is generated, then collect 
@@ -60,6 +70,14 @@ class Agent:
                     summary = run_sub_agent(tu.input.get("task", ""), self.client, MODEL)
                     results.append({"type": "tool_result", "tool_use_id": tu.id, "content": summary})
                     continue
+                # MCP tools (mcp__server__tool) go to the MCP server, not run locally.
+                if tu.name.startswith("mcp__"):
+                    # mcp__<server>__<tool> -> <tool>; drop the first two "__"
+                    # segments so it strips the same way the TypeScript side does.
+                    tool_name = "__".join(tu.name.split("__")[2:])
+                    output = self.mcp.call_tool(tool_name, tu.input) if self.mcp else "Denied: no MCP server connected."
+                    results.append({"type": "tool_result", "tool_use_id": tu.id, "content": output})
+                    continue
                 # Plan mode is read-only: writes and shell are denied on top of the gate.
                 blocked = check_permission(tu.name, tu.input) == "deny" or (
                     self.mode == "plan" and tu.name in ("write_file", "edit_file", "run_shell"))
@@ -67,6 +85,13 @@ class Agent:
                     else execute_tool(tu.name, tu.input)
                 results.append({"type": "tool_result", "tool_use_id": tu.id, "content": output})
             self.messages.append({"role": "user", "content": results})
+
+    # Connect to the MCP server named in MINI_MCP_SERVER once, on first use.
+    def _ensure_mcp(self):
+        mcp_env = os.environ.get("MINI_MCP_SERVER")
+        if self.mcp is None and mcp_env:
+            mcp_path = str(Path(mcp_env).resolve())
+            self.mcp = connect_mcp("node", [mcp_path])
 
     def set_model(self, m: str) -> None:
         self.mode = m
