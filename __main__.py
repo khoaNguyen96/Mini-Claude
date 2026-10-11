@@ -17,6 +17,11 @@ def main(argv=None) -> None:
     agent = Agent()
     # --resume: reload the saved conversataion before doing anything else.
     resume = "--resume" in argv
+    plan = "--plan" in argv  
+    argv = [a for a in argv if a not in ("--resume", "--plan")]
+    if plan:
+        agent.set_mode("plan")
+        print("(plan mode: read-only)")
     if resume:
         saved = load_session()
         if saved:
@@ -43,6 +48,16 @@ def main(argv=None) -> None:
             agent.clear_history()
             save_session(agent.history())
             print("(history cleared)")
+            continue
+        if line == "/plan":
+            agent.set_mode("plan")
+            print("(plan mode: read-only)")
+            continue
+        if line == "/execute":
+            agent.set_mode("default")
+            print("(plan approved: plan mode off)")
+            agent.chat("The plan is approved and plan mode is now off. Implement the plan.")
+            save_session(agent.history())
             continue
         if line:
             agent.chat(resolve_skill(line) or line)

@@ -16,6 +16,22 @@ load_dotenv()
 
 MODEL = os.environ.get("MINI_MODEL", "Qwen3.5-4B-GGUF")  
 
+# NOT IN THE TUTORIAL: lets the model know it is in plan mode.
+PLAN_BLOCKED_TOOLS = ("write_file", "edit_file", "run_shell")
+
+PLAN_MODE_PROMPT = """
+# Plan Mode (ACTIVE)
+You are in plan mode, a read-only planning phase. Your job is to produce a plan, not to make changes.
+ - You may explore with read_file, list_files and grep_search.
+ - write_file, edit_file and run_shell are unavailable. Never claim to have changed, created, or run anything.
+ - Do not implement the task. Describe what you would do instead.
+ - Write the plan as your reply, in this format:
+     Goal: one sentence.
+     Files to change: file_path and what changes in each.
+     Steps: numbered, in order.
+     Risks / open questions: anything the user should decide.
+ - End by asking the user to approve. They will leave plan mode and tell you to proceed."""
+
 
 class Agent:
     def __init__(self) -> None:
@@ -43,6 +59,10 @@ class Agent:
                 "input_schema": t["input_schema"]
                 } for t in (self.mcp.tools if self.mcp else [])]
             tools = tool_definitions + mcp_tools
+            if self.mode == "plan":
+                # NOT IN THE TUTORIAL: tell the model, and hide the tools it can't use.
+                system += PLAN_MODE_PROMPT
+                tools = [t for t in tools if t["name"] not in PLAN_BLOCKED_TOOLS]
             kwargs = dict(model=MODEL, max_tokens=4096, system=system, tools=tools, messages=self.messages)
 
             # Stream the reply so text shows up as it is generated, then collect 
@@ -80,7 +100,7 @@ class Agent:
                     continue
                 # Plan mode is read-only: writes and shell are denied on top of the gate.
                 blocked = check_permission(tu.name, tu.input) == "deny" or (
-                    self.mode == "plan" and tu.name in ("write_file", "edit_file", "run_shell"))
+                    self.mode == "plan" and tu.name in PLAN_BLOCKED_TOOLS)
                 output = f"Denied: {tu.name} was blocked ({self.mode} mode)." if blocked \
                     else execute_tool(tu.name, tu.input)
                 results.append({"type": "tool_result", "tool_use_id": tu.id, "content": output})
